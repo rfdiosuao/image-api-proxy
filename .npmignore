@@ -1,0 +1,5 @@
+node_modules/
+config.json
+image-*.png
+edited-*.png
+.claude/

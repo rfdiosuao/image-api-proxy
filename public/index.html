@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>图片生成</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎨</text></svg>">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        :root {
+            --bg-primary: #0c0c0c;
+            --bg-card: #1a1a1a;
+            --bg-card-hover: #222222;
+            --text-primary: #ffffff;
+            --text-secondary: rgba(255, 255, 255, 0.6);
+            --text-muted: rgba(255, 255, 255, 0.4);
+            --accent: #e8ff59;
+            --accent-dim: rgba(232, 255, 89, 0.1);
+            --border: rgba(255, 255, 255, 0.08);
+            --border-hover: rgba(255, 255, 255, 0.15);
+        }
+        body {
+            font-family: "DM Sans", -apple-system, sans-serif;
+            background: var(--bg-primary); color: var(--text-primary);
+            min-height: 100vh; display: flex; flex-direction: column;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        /* Nav */
+        nav {
+            padding: 24px 48px; display: flex; justify-content: space-between; align-items: center;
+            border-bottom: 1px solid var(--border);
+        }
+        .logo {
+            font-family: "Playfair Display", serif;
+            font-size: 1.3rem; font-weight: 700; color: var(--text-primary);
+            text-decoration: none;
+        }
+        .logo span { color: var(--accent); }
+        .nav-status {
+            padding: 6px 14px; background: var(--accent-dim);
+            border: 1px solid rgba(232, 255, 89, 0.2); border-radius: 100px;
+            font-size: 0.75rem; color: var(--accent); font-weight: 600;
+        }
+        .nav-status.off {
+            background: rgba(248,113,113,0.1); border-color: rgba(248,113,113,0.2);
+            color: #f87171;
+        }
+
+        /* Main */
+        main {
+            flex: 1; max-width: 800px; width: 100%; margin: 0 auto;
+            padding: 48px 24px 80px;
+        }
+
+        .page-title {
+            font-family: "Playfair Display", serif;
+            font-size: 2rem; font-weight: 700; margin-bottom: 8px;
+        }
+        .page-desc { color: var(--text-secondary); font-size: 0.95rem; margin-bottom: 40px; }
+
+        /* Form */
+        .form-group { margin-bottom: 20px; }
+        .form-label {
+            display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 8px;
+        }
+        .form-input {
+            width: 100%; padding: 12px 16px;
+            background: var(--bg-card); border: 1px solid var(--border);
+            border-radius: 12px; color: var(--text-primary);
+            font-family: "DM Sans", sans-serif; font-size: 0.9rem;
+            outline: none; transition: border-color 0.2s;
+        }
+        .form-input:focus { border-color: var(--accent); }
+        .form-input::placeholder { color: var(--text-muted); }
+        textarea.form-input { resize: vertical; min-height: 100px; line-height: 1.6; }
+
+        /* Options row */
+        .options-row { display: flex; gap: 16px; }
+        .options-row .form-group { flex: 1; }
+
+        .form-select {
+            width: 100%; padding: 12px 16px;
+            background: var(--bg-card); border: 1px solid var(--border);
+            border-radius: 12px; color: var(--text-primary);
+            font-family: "DM Sans", sans-serif; font-size: 0.9rem;
+            outline: none; cursor: pointer; appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%23666' viewBox='0 0 16 16'%3E%3Cpath d='M8 11L3 6h10z'/%3E%3C/svg%3E");
+            background-repeat: no-repeat; background-position: right 14px center;
+        }
+        .form-select:focus { border-color: var(--accent); }
+
+        /* Generate button */
+        .btn-generate {
+            width: 100%; padding: 16px; margin-top: 8px;
+            background: var(--accent); color: var(--bg-primary);
+            border: none; border-radius: 12px; font-size: 1rem;
+            font-weight: 700; cursor: pointer; transition: 0.2s;
+            font-family: "DM Sans", sans-serif;
+        }
+        .btn-generate:hover {
+            transform: translateY(-2px);
+            box-shadow: rgba(232, 255, 89, 0.3) 0 12px 32px;
+        }
+        .btn-generate:disabled {
+            opacity: 0.5; cursor: not-allowed; transform: none;
+            box-shadow: none;
+        }
+
+        /* Results */
+        .results-section { margin-top: 48px; }
+        .results-title {
+            font-family: "Playfair Display", serif;
+            font-size: 1.3rem; font-weight: 700; margin-bottom: 20px;
+        }
+        .results-grid {
+            display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+            gap: 16px;
+        }
+        .image-card {
+            background: var(--bg-card); border: 1px solid var(--border);
+            border-radius: 16px; overflow: hidden; transition: 0.3s;
+            position: relative; group: true;
+        }
+        .image-card:hover { border-color: var(--border-hover); transform: translateY(-4px); }
+        .image-card img {
+            width: 100%; aspect-ratio: 1; object-fit: cover; display: block;
+            cursor: pointer;
+        }
+        .image-card .download-btn {
+            position: absolute; bottom: 12px; right: 12px;
+            width: 40px; height: 40px; border-radius: 50%;
+            background: rgba(0,0,0,0.7); backdrop-filter: blur(8px);
+            border: 1px solid rgba(255,255,255,0.15);
+            display: flex; align-items: center; justify-content: center;
+            cursor: pointer; opacity: 0; transition: 0.2s;
+        }
+        .image-card:hover .download-btn { opacity: 1; }
+        .download-btn svg { width: 18px; height: 18px; fill: white; }
+
+        /* Error */
+        .error-msg {
+            padding: 16px 20px; background: rgba(248,113,113,0.08);
+            border: 1px solid rgba(248,113,113,0.2); border-radius: 12px;
+            color: #f87171; font-size: 0.9rem; margin-top: 20px;
+        }
+
+        /* Loading */
+        .loading {
+            display: flex; align-items: center; justify-content: center;
+            gap: 12px; padding: 60px 0; color: var(--text-secondary);
+            font-size: 0.95rem;
+        }
+        .spinner {
+            width: 24px; height: 24px; border: 3px solid var(--border);
+            border-top-color: var(--accent); border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* Lightbox */
+        .lightbox {
+            display: none; position: fixed; inset: 0; z-index: 1000;
+            background: rgba(0,0,0,0.9); backdrop-filter: blur(16px);
+            align-items: center; justify-content: center; padding: 40px;
+        }
+        .lightbox.active { display: flex; }
+        .lightbox img {
+            max-width: 90vw; max-height: 85vh; border-radius: 12px;
+            object-fit: contain; cursor: pointer;
+        }
+        .lightbox-close {
+            position: absolute; top: 24px; right: 24px;
+            width: 44px; height: 44px; border-radius: 50%;
+            background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.15);
+            color: white; font-size: 1.2rem; cursor: pointer;
+            display: flex; align-items: center; justify-content: center;
+        }
+        .lightbox-download {
+            position: absolute; bottom: 32px; left: 50%; transform: translateX(-50%);
+            padding: 12px 32px; background: var(--accent); color: var(--bg-primary);
+            border: none; border-radius: 100px; font-size: 0.9rem;
+            font-weight: 700; cursor: pointer; font-family: "DM Sans", sans-serif;
+        }
+
+        /* Toast */
+        .toast {
+            position: fixed; bottom: 24px; right: 24px; z-index: 1001;
+            padding: 12px 20px; background: var(--bg-card);
+            border: 1px solid var(--border); border-radius: 12px;
+            font-size: 0.85rem; animation: slideIn 0.3s ease;
+        }
+        @keyframes slideIn {
+            from { transform: translateX(100px); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+
+        /* Footer */
+        footer {
+            text-align: center; padding: 32px 24px;
+            border-top: 1px solid var(--border);
+            color: var(--text-muted); font-size: 0.8rem;
+        }
+
+        @media (max-width: 640px) {
+            nav { padding: 16px 20px; }
+            main { padding: 32px 16px 60px; }
+            .options-row { flex-direction: column; gap: 0; }
+            .results-grid { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+
+<nav>
+    <a href="#" class="logo">Image<span>API</span></a>
+    <div class="nav-status off" id="status">● 未配置</div>
+</nav>
+
+<main>
+    <h1 class="page-title">图片生成</h1>
+    <p class="page-desc">填入中转站地址和提示词，生成图片并直接下载</p>
+
+    <div class="form-group">
+        <label class="form-label">中转站地址</label>
+        <input type="text" class="form-input" id="baseUrl" placeholder="https://api.example.com">
+    </div>
+
+    <div class="form-group">
+        <label class="form-label">API Key</label>
+        <input type="password" class="form-input" id="apiKey" placeholder="sk-xxx（选填）">
+    </div>
+
+    <div class="options-row">
+        <div class="form-group">
+            <label class="form-label">模型</label>
+            <select class="form-select" id="model">
+                <option value="gpt-image-2">gpt-image-2</option>
+                <option value="codex-gpt-image-2">codex-gpt-image-2</option>
+                <option value="auto">auto</option>
+                <option value="gpt-5">gpt-5</option>
+                <option value="gpt-5-1">gpt-5-1</option>
+                <option value="gpt-5-2">gpt-5-2</option>
+                <option value="gpt-5-3">gpt-5-3</option>
+                <option value="gpt-5-3-mini">gpt-5-3-mini</option>
+                <option value="gpt-5-mini">gpt-5-mini</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label class="form-label">尺寸</label>
+            <select class="form-select" id="size">
+                <option value="1024x1024">1024×1024</option>
+                <option value="1024x1536">1024×1536</option>
+                <option value="1536x1024">1536×1024</option>
+                <option value="512x512">512×512</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label class="form-label">数量</label>
+            <select class="form-select" id="count">
+                <option value="1">1 张</option>
+                <option value="2">2 张</option>
+                <option value="3">3 张</option>
+                <option value="4">4 张</option>
+            </select>
+        </div>
+    </div>
+
+    <div class="form-group">
+        <label class="form-label">提示词</label>
+        <textarea class="form-input" id="prompt" placeholder="描述你想生成的图片，例如：一只戴着墨镜的猫，数字艺术风格"></textarea>
+    </div>
+
+    <button class="btn-generate" id="generateBtn" onclick="generate()">生成图片 →</button>
+
+    <div id="results"></div>
+</main>
+
+<footer>© 2026 Image API Proxy</footer>
+
+<!-- Lightbox -->
+<div class="lightbox" id="lightbox" onclick="closeLightbox(event)">
+    <button class="lightbox-close" onclick="closeLightbox(event)">✕</button>
+    <img id="lightboxImg" src="" alt="" onclick="event.stopPropagation()">
+    <button class="lightbox-download" onclick="event.stopPropagation(); downloadCurrent()">下载图片</button>
+</div>
+
+<script>
+// ─── Config (server-side) ──────────────────────────
+let serverHasKey = false;
+
+async function loadSaved() {
+    try {
+        const resp = await fetch('/api/config');
+        const cfg = await resp.json();
+        if (cfg.baseUrl) document.getElementById('baseUrl').value = cfg.baseUrl;
+        if (cfg.apiKey) {
+            document.getElementById('apiKey').value = cfg.apiKey;
+            serverHasKey = cfg.hasKey;
+        }
+    } catch {}
+    updateStatus();
+}
+
+async function saveConfig() {
+    const baseUrl = document.getElementById('baseUrl').value.trim().replace(/\/+$/, '');
+    let apiKey = document.getElementById('apiKey').value.trim();
+    // 如果是脱敏占位符，不传给服务端
+    if (apiKey === '••••••••') apiKey = undefined;
+    try {
+        await fetch('/api/config', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ baseUrl, apiKey }),
+        });
+        if (apiKey) serverHasKey = true;
+    } catch {}
+    updateStatus();
+}
+
+function updateStatus() {
+    const el = document.getElementById('status');
+    const base = document.getElementById('baseUrl').value.trim();
+    if (base) { el.textContent = '● 已配置'; el.classList.remove('off'); }
+    else { el.textContent = '● 未配置'; el.classList.add('off'); }
+}
+
+let saveTimer;
+function debounceSave() { clearTimeout(saveTimer); saveTimer = setTimeout(saveConfig, 500); }
+document.getElementById('baseUrl').addEventListener('input', debounceSave);
+document.getElementById('apiKey').addEventListener('input', debounceSave);
+
+// ─── Generate ──────────────────────────────────────
+async function generate() {
+    const baseUrl = document.getElementById('baseUrl').value.trim().replace(/\/+$/, '');
+    const prompt = document.getElementById('prompt').value.trim();
+    const model = document.getElementById('model').value;
+    const size = document.getElementById('size').value;
+    const n = parseInt(document.getElementById('count').value);
+    const results = document.getElementById('results');
+    const btn = document.getElementById('generateBtn');
+
+    if (!baseUrl) return alert('请填入中转站地址');
+    if (!prompt) return alert('请填入提示词');
+
+    await saveConfig();
+    btn.disabled = true;
+    btn.textContent = '生成中...';
+    results.innerHTML = '<div class="loading"><div class="spinner"></div>正在生成，请稍候...</div>';
+
+    try {
+        // 直接调本地代理，服务端已有 base_url 和 key 配置
+        const resp = await fetch('/v1/images/generations', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ model, prompt, n, size }),
+        });
+
+        const data = await resp.json();
+
+        if (!resp.ok) {
+            throw new Error(data.error?.message || JSON.stringify(data));
+        }
+
+        if (!data.data || data.data.length === 0) {
+            throw new Error('未返回图片数据');
+        }
+
+        // Show images
+        let html = '<div class="results-section"><h2 class="results-title">生成结果</h2><div class="results-grid">';
+        data.data.forEach((item, i) => {
+            const src = item.url || (item.b64_json ? `data:image/png;base64,${item.b64_json}` : '');
+            if (src) {
+                html += `<div class="image-card">
+                    <img src="${src}" alt="Generated ${i+1}" onclick="openLightbox('${src.replace(/'/g, "\\'")}')">
+                    <button class="download-btn" onclick="downloadImage('${src.replace(/'/g, "\\'")}', 'image-${i+1}.png')">
+                        <svg viewBox="0 0 24 24"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg>
+                    </button>
+                </div>`;
+            }
+        });
+        html += '</div></div>';
+        results.innerHTML = html;
+    } catch (e) {
+        results.innerHTML = `<div class="error-msg">生成失败：${e.message}</div>`;
+    } finally {
+        btn.disabled = false;
+        btn.textContent = '生成图片 →';
+    }
+}
+
+// ─── Download ──────────────────────────────────────
+async function downloadImage(src, filename) {
+    try {
+        const resp = await fetch(src);
+        const blob = await resp.blob();
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = filename;
+        a.click();
+        URL.revokeObjectURL(a.href);
+    } catch {
+        // Fallback: open in new tab
+        window.open(src, '_blank');
+    }
+}
+
+// ─── Lightbox ──────────────────────────────────────
+let currentLightboxSrc = '';
+function openLightbox(src) {
+    currentLightboxSrc = src;
+    document.getElementById('lightboxImg').src = src;
+    document.getElementById('lightbox').classList.add('active');
+}
+function closeLightbox(e) {
+    if (e.target === document.getElementById('lightbox') || e.target.classList.contains('lightbox-close')) {
+        document.getElementById('lightbox').classList.remove('active');
+    }
+}
+function downloadCurrent() {
+    downloadImage(currentLightboxSrc, 'image.png');
+}
+document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') document.getElementById('lightbox').classList.remove('active');
+});
+
+// ─── Init ──────────────────────────────────────────
+loadSaved();
+
+</script>
+</body>
+</html>

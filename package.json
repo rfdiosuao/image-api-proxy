@@ -1,0 +1,38 @@
+{
+  "name": "imgapi-cli",
+  "version": "1.0.0",
+  "description": "OpenAI Images API 命令行工具 — 一条命令生成/编辑图片",
+  "main": "cli.js",
+  "bin": {
+    "imgapi": "./cli.js"
+  },
+  "files": [
+    "cli.js",
+    "public",
+    "server.js"
+  ],
+  "scripts": {
+    "start": "node server.js",
+    "cli": "node cli.js"
+  },
+  "keywords": [
+    "openai",
+    "images",
+    "gpt-image",
+    "dall-e",
+    "api-proxy",
+    "cli",
+    "image-generation",
+    "image-editing"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "express": "^4.21.0",
+    "multer": "^1.4.5-lts.1",
+    "node-fetch": "^2.7.0"
+  },
+  "engines": {
+    "node": ">=14"
+  }
+}
